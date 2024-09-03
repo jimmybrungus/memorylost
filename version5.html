@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Video Mosaic</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        .video-mosaic {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .video-container {
+            position: absolute;
+            overflow: hidden;
+            background-color: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .video-1 { top: 10%; left: 2%; width: 30%; height: 30%; }
+        .video-2 { top: 12%; left: 30%; width: 20%; height: 20%; }
+        .video-3 { top: 2%; right: 20%; width: 28%; height: 28%; }
+        .video-4 { top: 44%; left: 17%; width: 22%; height: 15%; }
+        .video-5 { top: 34%; left: 34%; width: 32%; height: 28%; }
+        .video-6 { top: 31%; right: 16%; width: 22%; height: 22%; }
+        .video-7 { bottom: 6%; left: 12%; width: 24%; height: 30%; }
+        .video-8 { bottom: 2%; left: 38%; width: 20%; height: 25%; }
+        .video-9 { bottom: 8%; right: 4%; width: 32%; height: 32%; }
+    </style>
+</head>
+<body>
+    <div class="video-mosaic" id="videoMosaic"></div>
+    <script>
+        // Function to get all video files from the 'videos' folder
+        function getVideoFiles() {
+            // For this example, we'll use a predefined list of video files
+            // In a real scenario, you'd need to implement server-side logic to get this list
+            return [
+                'video1.mp4', 'video2.mp4', 'video3.mp4', 'video4.mp4', 'video5.mp4',
+                'video6.mp4', 'video7.mp4', 'video8.mp4', 'video9.mp4', 'video10.mp4',
+                'video11.mp4', 'video12.mp4', 'video13.mp4', 'video14.mp4', 'video15.mp4',
+                'video16.mp4', 'video17.mp4', 'video18.mp4', 'video19.mp4', 'video20.mp4',
+                'video21.mp4', 'video22.mp4', 'video23.mp4', 'video24.mp4', 'video25.mp4',
+                'video26.mp4', 'video27.mp4', 'video28.mp4', 'video29.mp4', 'video30.mp4',
+                'video31.mp4', 'video32.mp4', 'video33.mp4', 'video34.mp4', 'video35.mp4',
+                'video36.mp4', 'video37.mp4', 'video38.mp4', 'video39.mp4', 'video40.mp4',
+                'video41.mp4', 'video42.mp4', 'video43.mp4'
+            ];
+        }
+
+        // Function to get a random video
+        function getRandomVideo(videos) {
+            return videos[Math.floor(Math.random() * videos.length)];
+        }
+
+        // Function to update video source
+        function updateVideoSource(videoElement, videos) {
+            const newSource = getRandomVideo(videos);
+            videoElement.src = `NoSound/${newSource}`;
+            videoElement.load();
+            videoElement.dataset.repeatsLeft = Math.floor(Math.random() * 5) + 2; // 2 to 6 repeats
+        }
+
+        // Function to manage audio
+        function manageAudio(videos) {
+            const playingVideos = Array.from(videos).filter(v => !v.paused && !v.ended);
+            const unmutedVideos = playingVideos.filter(v => !v.muted);
+
+            if (unmutedVideos.length < 3) {
+                const mutedVideos = playingVideos.filter(v => v.muted);
+                const toUnmute = mutedVideos.slice(0, 3 - unmutedVideos.length);
+                toUnmute.forEach(v => v.muted = false);
+            } else if (unmutedVideos.length > 6) {
+                const toMute = unmutedVideos.slice(6);
+                toMute.forEach(v => v.muted = true);
+            }
+        }
+
+        // Main function
+        function initializeVideoMosaic() {
+            const videoFiles = getVideoFiles();
+            const videoMosaic = document.getElementById('videoMosaic');
+
+            for (let i = 1; i <= 9; i++) {
+                const container = document.createElement('div');
+                container.className = `video-container video-${i}`;
+                const video = document.createElement('video');
+                video.loop = false;
+                video.muted = true;
+                video.playsinline = true;
+                video.preload = "metadata";
+
+                // Set initial source
+                updateVideoSource(video, videoFiles);
+
+                // Add event listener for when the video ends
+                video.addEventListener('ended', () => {
+                    if (video.dataset.repeatsLeft > 0) {
+                        video.dataset.repeatsLeft--;
+                        video.currentTime = 0;
+                        video.play().catch(e => console.error("Error replaying video:", e));
+                    } else {
+                        video.style.display = 'none'; // Hide video when it ends
+                        setTimeout(() => {
+                            updateVideoSource(video, videoFiles);
+                            video.style.display = ''; // Show video
+                            video.play().then(() => {
+                                manageAudio(document.querySelectorAll('video'));
+                            }).catch(e => console.error("Error playing video:", e));
+                        }, Math.random() * 60000); // Wait 0-60 seconds before playing next video
+                    }
+                });
+
+                container.appendChild(video);
+                videoMosaic.appendChild(container);
+
+                // Initial offset for first playback
+                video.style.display = 'none'; // Initially hide video
+                setTimeout(() => {
+                    video.style.display = ''; // Show video
+                    video.play().then(() => {
+                        manageAudio(document.querySelectorAll('video'));
+                    }).catch(e => console.error("Error playing video:", e));
+                }, Math.random() * 30000);
+            }
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const video = entry.target.querySelector('video');
+                    if (entry.isIntersecting) {
+                        video.play().then(() => {
+                            manageAudio(document.querySelectorAll('video'));
+                        }).catch(e => console.error("Error playing video:", e));
+                    } else {
+                        video.pause();
+                        manageAudio(document.querySelectorAll('video'));
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            document.querySelectorAll('.video-container').forEach(container => {
+                observer.observe(container);
+            });
+        }
+
+        initializeVideoMosaic();
+    </script>
+</body>
+</html>
